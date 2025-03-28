@@ -20,4 +20,4 @@ jobs:
         env:
           WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
           WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
-        run: python yourbot.py
+        run: python CactusismeBot.py
