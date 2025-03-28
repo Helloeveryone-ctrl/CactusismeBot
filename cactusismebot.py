@@ -10,49 +10,70 @@ Original file is located at
 !pip install mwclient
 import mwclient
 import time
+import logging
 
-# Connect to Simple Wikipedia
-site = mwclient.Site('simple.wikipedia.org')
+# Set up logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Login (replace with your username and bot password)
-username = 'CactusismeBot'
-password = 'Temporarybotpassword'
-site.login(username, password)
+# Connect to Simple English Wikipedia
+site = mwclient.Site("simple.wikipedia.org")
 
-def process_vip_reports():
-    # Access WP:VIP page
-    page = site.pages["Wikipedia:Vandalism in progress"]
+# Login (replace with your credentials)
+USERNAME = "YourBotUsername"
+PASSWORD = "YourBotPassword"
 
-    try:
-        # Get the text of the page
-        vip_text = page.text()
-
-        # Split into sections or lines
-        lines = vip_text.split("\n")
-        updated_text = []
-        for line in lines:
-            if "{{done}}" not in line:  # Only process entries not already marked as done
-                if "{{vandal|" in line:  # Check for vandal template
-                    # Extract the username or IP from the template
-                    username_or_ip = extract_vandal_username(line)
-
-                    if username_or_ip and site.users[username_or_ip].get("blockinfo"):
-                        # Mark as done
-                        line += " {{done}}--~~~~"
-            updated_text.append(line)
-
-        # Save changes to WP:VIP
-        page.edit("\n".join(updated_text), summary="Marking reports as done.")
-    except Exception as e:
-        print(f"Error processing WP:VIP: {e}")
+try:
+    site.login(USERNAME, PASSWORD)
+    logging.info("Logged in successfully.")
+except mwclient.LoginError as e:
+    logging.error(f"Login failed: {e}")
+    exit(1)
 
 def extract_vandal_username(line):
-    # Extract the username from the {{vandal|Username}} template
-    if "{{vandal|" in line:
+    """Extract the username or IP from the {{vandal|Username}} template."""
+    if "{{vandal|" in line and "}}" in line:
         start = line.index("{{vandal|") + len("{{vandal|")
         end = line.index("}}", start)
         return line[start:end].strip()
     return None
+
+def process_vip_reports():
+    """Processes reports on WP:VIP and marks blocked/globally locked vandals as done."""
+    page = site.pages["Wikipedia:Vandalism in progress"]
+
+    try:
+        vip_text = page.text()
+        lines = vip_text.split("\n")
+        updated_text = []
+        changes_made = False
+
+        for line in lines:
+            if "{{done}}" not in line and "{{vandal|" in line:
+                vandal_username = extract_vandal_username(line)
+
+                if vandal_username:
+                    user_info = site.users[vandal_username]
+
+                    if user_info.get("blockinfo"):  # Locally blocked
+                        line += " {{done}}--~~~~"
+                        changes_made = True
+                        logging.info(f"Marked {vandal_username} as done (Blocked).")
+
+                    elif user_info.get("locked"):  # Globally locked
+                        line += " {{done|Globally locked}}--~~~~"
+                        changes_made = True
+                        logging.info(f"Marked {vandal_username} as done (Globally locked).")
+
+            updated_text.append(line)
+
+        if changes_made:
+            page.edit("\n".join(updated_text), summary="Marking blocked/globally locked vandals as done.")
+            logging.info("Updated WP:VIP successfully.")
+        else:
+            logging.info("No changes needed.")
+
+    except Exception as e:
+        logging.error(f"Error processing WP:VIP: {e}")
 
 # Run the bot periodically
 while True:
