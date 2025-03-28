@@ -16,9 +16,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Connect to Simple English Wikipedia
 site = mwclient.Site("simple.wikipedia.org")
 
-# Login (replace with your credentials)
-USERNAME = "YourBotUsername"
-PASSWORD = "YourBotPassword"
+USERNAME = os.getenv("WIKI_USERNAME")
+PASSWORD = os.getenv("WIKI_PASSWORD")
+
 
 try:
     site.login(USERNAME, PASSWORD)
