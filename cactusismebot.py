@@ -47,5 +47,5 @@ def extract_vandal_username(line):
 # Run the bot periodically for testing
 while True:
     process_vip_reports()
-    time.sleep(300)  # Run every 5 minutes
+    time.sleep(3)  # Run every 5 minutes
 
