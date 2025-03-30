@@ -1,4 +1,4 @@
-name: CactusIsMeBot Schedule
+name: CactusismeBot Combined Workflow
 on:
   schedule:
     # Runs every 5 minutes (adjust this as needed)
@@ -25,10 +25,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install mwclient
 
-    - name: Run CactusIsMeBot
+    - name: Run CactusismeBot
       env:
         WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
         WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
       run: |
-        echo "Starting CactusIsMeBot..."
+        echo "Starting CactusismeBot..."
         python cactusismebot.py
