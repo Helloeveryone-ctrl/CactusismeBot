@@ -8,9 +8,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Connect to Simple English Wikipedia
 site = mwclient.Site("simple.wikipedia.org")  # Change this if WP:VIP is on another project
 
-# Login (replace with your bot's username and password)
-USERNAME = "YourBotUsername"
-PASSWORD = "YourBotPassword"
+import os
+
+USERNAME = os.getenv("WIKI_USERNAME")
+PASSWORD = os.getenv("WIKI_PASSWORD")
+
+if not USERNAME or not PASSWORD:
+    raise ValueError("Environment variables WIKI_USERNAME and WIKI_PASSWORD are not defined.")
+
 
 try:
     site.login(USERNAME, PASSWORD)
