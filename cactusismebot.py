@@ -4,9 +4,13 @@ import time
 # Connect to Test Wikipedia
 site = mwclient.Site('test.wikipedia.org')
 
-# Login (replace with your test bot's username and password)
-USERNAME = CactusismeBot
-PASSWORD = Temporarybotpassword
+import os
+
+USERNAME = os.getenv("WIKI_USERNAME")
+PASSWORD = os.getenv("WIKI_PASSWORD")
+
+if not USERNAME or not PASSWORD:
+    raise ValueError("Environment variables WIKI_USERNAME and WIKI_PASSWORD are not defined.")
 
 try:
     site.login(USERNAME, PASSWORD)
