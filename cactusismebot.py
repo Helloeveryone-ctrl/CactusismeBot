@@ -34,8 +34,6 @@ def remove_red_links(page_title, dry_run=False):
         # Regex to find red-linked articles
         red_link_pattern = r"\[\[(?:[^|\]]+\|)?([^\]]+)\]\]"
 
-
-"  # Fixed and complete regex pattern
         updated_text = []
         changes_made = False
 
