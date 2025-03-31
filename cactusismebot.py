@@ -36,7 +36,7 @@ def process_vip_reports(dry_run=False):
     try:
         # Get the text of the page
         vip_text = page.text()
-        logging.debug(f"Retrieved page content: {vip_text}")
+        logging.debug(f"Retrieved page content:\n{vip_text}")
 
         lines = vip_text.split("\n")
         updated_text = []
@@ -53,12 +53,14 @@ def process_vip_reports(dry_run=False):
                         user_info = user_info_list[0] if user_info_list else None
                         logging.debug(f"User info for {vandal_username}: {user_info}")
 
-                        if user_info and "blockedby" in user_info:
+                        if user_info and user_info.get("blockedby"):
                             # Mark as done
                             line += " {{done}} --~~~~"
                             changes_made = True
                             blocking_admin = user_info.get("blockedby")
                             logging.info(f"Marked {vandal_username} as done (Blocked by {blocking_admin}).")
+                        else:
+                            logging.info(f"User {vandal_username} is not blocked or information is missing.")
 
                     except Exception as user_error:
                         logging.error(f"Error processing user {vandal_username}: {user_error}")
