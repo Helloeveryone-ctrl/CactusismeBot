@@ -4,7 +4,7 @@ import re
 import os
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Connect to Test Wikipedia
 site = mwclient.Site("test.wikipedia.org")
@@ -25,15 +25,19 @@ except mwclient.LoginError as e:
 def extract_vandal_username(line):
     """Extract the username or IP from vandal templates using regex."""
     match = re.search(r"{{(?:vandal|ipvandal)\|([^}]+)}}", line)
-    return match.group(1).strip() if match else None
+    vandal_username = match.group(1).strip() if match else None
+    logging.debug(f"Extracted vandal username: {vandal_username} from line: {line}")
+    return vandal_username
 
-def process_vip_reports():
+def process_vip_reports(dry_run=False):
     """Processes reports on WP:VIP and marks blocked vandals as done."""
     page = site.pages["Wikipedia:VIP"]  # WP:VIP page
 
     try:
         # Get the text of the page
         vip_text = page.text()
+        logging.debug(f"Retrieved page content: {vip_text}")
+
         lines = vip_text.split("\n")
         updated_text = []
         changes_made = False
@@ -47,6 +51,7 @@ def process_vip_reports():
                         # Retrieve user information
                         user_info_list = site.users([vandal_username])
                         user_info = user_info_list[0] if user_info_list else None
+                        logging.debug(f"User info for {vandal_username}: {user_info}")
 
                         if user_info and "blockedby" in user_info:
                             # Mark as done
@@ -62,8 +67,12 @@ def process_vip_reports():
 
         # Save changes to WP:VIP if there are updates
         if changes_made:
-            page.edit("\n".join(updated_text), summary="Marking reports as done.")
-            logging.info("Updated Wikipedia:VIP successfully.")
+            if dry_run:
+                logging.info("Dry run mode: Changes are not being saved.")
+                logging.debug("Updated text content:\n" + "\n".join(updated_text))
+            else:
+                page.edit("\n".join(updated_text), summary="Marking reports as done.")
+                logging.info("Updated Wikipedia:VIP successfully.")
         else:
             logging.info("No changes needed on Wikipedia:VIP.")
 
@@ -72,4 +81,4 @@ def process_vip_reports():
 
 # Run the bot
 if __name__ == "__main__":
-    process_vip_reports()
+    process_vip_reports(dry_run=False)  # Set to True for testing without saving changes
