@@ -1,21 +1,19 @@
 import mwclient
 import logging
 import re
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Connect to Simple English Wikipedia
-site = mwclient.Site("simple.wikipedia.org")  # Change this if WP:VIP is on another project
-
-import os
+# Connect to Test Wikipedia
+site = mwclient.Site("test.wikipedia.org")
 
 USERNAME = os.getenv("WIKI_USERNAME")
 PASSWORD = os.getenv("WIKI_PASSWORD")
 
 if not USERNAME or not PASSWORD:
     raise ValueError("Environment variables WIKI_USERNAME and WIKI_PASSWORD are not defined.")
-
 
 try:
     site.login(USERNAME, PASSWORD)
@@ -25,42 +23,40 @@ except mwclient.LoginError as e:
     exit(1)
 
 def extract_vandal_username(line):
-    """Extract the username or IP from the {{vandal|Username}} or {{ipvandal|Username}} template."""
-    if "{{vandal|" in line or "{{ipvandal|" in line:
-        template_start = "{{vandal|" if "{{vandal|" in line else "{{ipvandal|"
-        start = line.index(template_start) + len(template_start)
-        end = line.index("}}", start)
-        return line[start:end].strip()
-    return None
+    """Extract the username or IP from vandal templates using regex."""
+    match = re.search(r"{{(?:vandal|ipvandal)\|([^}]+)}}", line)
+    return match.group(1).strip() if match else None
 
 def process_vip_reports():
     """Processes reports on WP:VIP and marks blocked vandals as done."""
-    page = site.pages["Wikipedia:Vandalism in progress"]  # WP:VIP page
+    page = site.pages["Wikipedia:VIP"]  # WP:VIP page
 
     try:
         # Get the text of the page
         vip_text = page.text()
-
-        # Split into sections or lines
         lines = vip_text.split("\n")
         updated_text = []
         changes_made = False
 
         for line in lines:
-            if "{{done}}" not in line and ("{{vandal|" in line or "{{ipvandal|" in line):
+            if "{{done}}" not in line:
                 vandal_username = extract_vandal_username(line)
 
                 if vandal_username:
-                    # Retrieve user information
-                    user_info_list = site.users([vandal_username])
-                    user_info = user_info_list[0] if user_info_list else None
+                    try:
+                        # Retrieve user information
+                        user_info_list = site.users([vandal_username])
+                        user_info = user_info_list[0] if user_info_list else None
 
-                    if user_info and "blockedby" in user_info:
-                        # Mark as done
-                        line += " {{done}}--~~~~"
-                        changes_made = True
-                        blocking_admin = user_info.get("blockedby")
-                        logging.info(f"Marked {vandal_username} as done (Blocked by {blocking_admin}).")
+                        if user_info and "blockedby" in user_info:
+                            # Mark as done
+                            line += " {{done}} --~~~~"
+                            changes_made = True
+                            blocking_admin = user_info.get("blockedby")
+                            logging.info(f"Marked {vandal_username} as done (Blocked by {blocking_admin}).")
+
+                    except Exception as user_error:
+                        logging.error(f"Error processing user {vandal_username}: {user_error}")
 
             updated_text.append(line)
 
@@ -74,7 +70,6 @@ def process_vip_reports():
     except Exception as e:
         logging.error(f"Error processing Wikipedia:VIP: {e}")
 
-# Run the bot once (to be scheduled via cron job or GitHub Actions)
+# Run the bot
 if __name__ == "__main__":
     process_vip_reports()
-
