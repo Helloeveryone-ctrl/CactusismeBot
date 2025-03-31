@@ -44,7 +44,7 @@ def remove_red_links(page_title, dry_run=False):
 
 \]
 
-"
+"  # Fixed and complete regex pattern
         updated_text = []
         changes_made = False
 
@@ -76,5 +76,4 @@ def remove_red_links(page_title, dry_run=False):
 
 # Run the function
 if __name__ == "__main__":
-    remove_red_links("User talk:Cactusisme/Archive 2", dry_run=False)  # Set to True for testing without saving changes
-
+    remove_red_links("User talk:Cactusisme/Archive 2", dry_run=False)  # Set to True for testing
