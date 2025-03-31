@@ -1,34 +1,31 @@
-name: CactusismeBot Combined Workflow
-on:
-  schedule:
-    # Runs every 5 minutes (adjust this as needed)
-    - cron: "*/5 * * * *"
+name: Run Wikipedia Bot
 
-  workflow_dispatch:
-    # Allows manual execution of the workflow from GitHub Actions UI
+on:
+  push:
+    branches:
+      - main  # Adjust if you're using a different branch
+  workflow_dispatch:  # Allows manual trigger from GitHub
 
 jobs:
-  run_bot:
+  run-bot:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.x"
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8  # Use the version you need
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install mwclient
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mwclient
 
-    - name: Run CactusismeBot
-      env:
-        WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
-        WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
-      run: |
-        echo "Starting CactusismeBot..."
-        python cactusismebot.py
+      - name: Run bot script
+        env:
+          WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
+          WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
+        run: |
+          python cactusismebot.py
