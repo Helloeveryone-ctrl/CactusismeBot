@@ -39,7 +39,7 @@ def remove_red_linked_templates_from_page(page):
 
         # Remove all red templates in one operation
         for template_name in red_templates:
-            page_text = re.sub(rf"\{{\{{{re.escape(template_name)}}.*?\}}\}}", "", page_text)
+            page_text = re.sub(rf"\{{\{{{re.escape(template_name)}\}}\}}", "", page_text)
 
         page.edit(page_text, summary="Removed red-linked templates.")
         logging.info(f"Updated page: {page.name}")
