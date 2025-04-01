@@ -7,8 +7,8 @@ import time
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Connect to Test Wikipedia with a timeout
-site = mwclient.Site("test.wikipedia.org", timeout=10)
+# Connect to Test Wikipedia
+site = mwclient.Site("test.wikipedia.org")
 
 USERNAME = os.getenv("WIKI_USERNAME")
 PASSWORD = os.getenv("WIKI_PASSWORD")
