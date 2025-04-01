@@ -1,7 +1,7 @@
 name: Run VIP Bot
 on:
   schedule:
-    - cron: "0 * * * *"  # Runs every hour
+    - cron: "*/1 * * * *"  # Runs every minute
   workflow_dispatch:  # Allows manual execution
 
 jobs:
