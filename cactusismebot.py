@@ -1,15 +1,14 @@
 import mwclient
-import os
-import re
 import logging
+import re
+import os
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Connect to Simple Wikipedia
-site = mwclient.Site("simple.wikipedia.org")
+# Connect to Test Wikipedia
+site = mwclient.Site("test.wikipedia.org", scheme="https")
 
-# Bot login
 USERNAME = os.getenv("WIKI_USERNAME")
 PASSWORD = os.getenv("WIKI_PASSWORD")
 
@@ -23,47 +22,70 @@ except mwclient.LoginError as e:
     logging.error(f"Login failed: {e}")
     exit(1)
 
-# Function to get section titles and original posters
-def get_sections_and_posters(page_title):
-    page = site.pages[page_title]
-    if not page.exists:
-        logging.error("Page does not exist.")
-        return {}
-    
-    page_text = page.text()
-    section_posters = {}
-    
-    # Regex to find == Section Headers == and extract the first signature after them
-    section_pattern = re.compile(r'==\s*(.*?)\s*==.*?(\[\[User:[^|]+\|([^]]+)\]\])', re.DOTALL)
-    
-    for match in section_pattern.finditer(page_text):
-        section_title = match.group(1).strip()
-        poster_username = match.group(3).strip()
-        section_posters[section_title] = poster_username
-    
-    return section_posters
+def extract_vandal_username(line):
+    """Extracts the username or IP from {{vandal}} or {{ipvandal}} templates."""
+    match = re.search(r"{{(?:vandal|ipvandal)\|([^}]+)}}", line)
+    if match:
+        vandal_username = match.group(1).strip()
+        logging.debug(f"Extracted vandal username: {vandal_username} from line: {line}")
+        return vandal_username
+    return None
 
-# Function to notify users if their section is removed
-def notify_users(original_sections, new_sections, talk_page):
-    for section, user in original_sections.items():
-        if section not in new_sections:
-            logging.info(f"Notifying {user} about missing section: {section}")
-            message = f"Hello [[User:{user}|{user}]],\n\nYour discussion section titled '{section}' on [[Wikipedia:Simple talk]] has been archived or removed. Please check the archives or re-add the discussion if necessary.\n\n-- ~~~~"
-            
-            user_talk_page = site.pages[f"User talk:{user}"]
-            user_talk_page.text()  # Ensure we fetch the latest version
-            user_talk_page.save(user_talk_page.text() + '\n\n' + message, summary="Notifying user about archived/deleted section.")
+def process_vip_reports(clear_old=False, dry_run=False):
+    """Processes reports on WP:VIP, marks blocked vandals as done, and optionally clears old reports."""
+    page = site.pages["Wikipedia:VIP"]  # VIP page
 
-# Main execution
+    try:
+        # Get the text of the page
+        vip_text = page.text()
+        logging.debug(f"Retrieved page content:\n{vip_text}")
+
+        lines = vip_text.split("\n")
+        updated_text = []
+        changes_made = False
+
+        for line in lines:
+            if "{{done}}" not in line:
+                vandal_username = extract_vandal_username(line)
+
+                if vandal_username:
+                    try:
+                        # Retrieve user information correctly
+                        user_info = site.users([vandal_username]).get(vandal_username, {})
+
+                        if user_info and user_info.get("blockedby"):
+                            # Mark as done
+                            line += " {{done}} --~~~~"
+                            changes_made = True
+                            blocking_admin = user_info.get("blockedby")
+                            logging.info(f"Marked {vandal_username} as done (Blocked by {blocking_admin}).")
+                        else:
+                            logging.info(f"User {vandal_username} is not blocked or missing data.")
+
+                    except Exception as user_error:
+                        logging.error(f"Error processing user {vandal_username}: {user_error}")
+
+            updated_text.append(line)
+
+        # Optionally clear the VIP page if all reports are marked as done
+        if clear_old and all("{{done}}" in l for l in updated_text if extract_vandal_username(l)):
+            logging.info("All reports are resolved, clearing VIP page.")
+            updated_text = ["== Current reports =="]
+
+        # Save changes if updates were made
+        if changes_made or clear_old:
+            if dry_run:
+                logging.info("Dry run mode: Changes are not being saved.")
+                logging.debug("Updated text content:\n" + "\n".join(updated_text))
+            else:
+                page.edit("\n".join(updated_text), summary="Marking reports as done and/or clearing VIP.")
+                logging.info("Updated Wikipedia:VIP successfully.")
+        else:
+            logging.info("No changes needed on Wikipedia:VIP.")
+
+    except Exception as e:
+        logging.error(f"Error processing Wikipedia:VIP: {e}")
+
+# Run the bot
 if __name__ == "__main__":
-    TALK_PAGE = "Wikipedia:Simple talk"
-    
-    logging.info("Fetching original sections...")
-    original_sections = get_sections_and_posters(TALK_PAGE)
-    
-    logging.info("Checking for updates...")
-    new_sections = get_sections_and_posters(TALK_PAGE)
-    
-    notify_users(original_sections, new_sections, TALK_PAGE)
-    
-    logging.info("Script completed.")
+    process_vip_reports(clear_old=True, dry_run=False)  # Set dry_run=True to test without saving changes
