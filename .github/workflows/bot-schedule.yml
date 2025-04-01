@@ -1,16 +1,15 @@
-name: Section Archive Notifier
-
+name: Run VIP Bot
 on:
   schedule:
     - cron: "0 * * * *"  # Runs every hour
-  workflow_dispatch:  # Allows manual runs
+  workflow_dispatch:  # Allows manual execution
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -20,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: pip install mwclient
 
-      - name: Run the bot
+      - name: Run bot script
         env:
           WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
           WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
