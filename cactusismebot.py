@@ -55,7 +55,7 @@ def remove_red_links(page_title, dry_run=False):
                 logging.info("Dry run mode: Changes are not being saved.")
                 logging.debug("Updated text content:\n" + "\n".join(updated_text))
             else:
-                page.edit("\n".join(updated_text), summary="Removed red-linked articles.")
+                page.edit("\n".join(updated_text), summary="Removed red-linked articles (bot).")
                 logging.info(f"Updated {page_title} successfully.")
         else:
             logging.info(f"No red links found on {page_title}.")
