@@ -2,6 +2,7 @@ import mwclient
 import logging
 import re
 import os
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -17,14 +18,14 @@ if not USERNAME or not PASSWORD:
 
 try:
     site.login(USERNAME, PASSWORD)
-    logging.info(f"Bot logged in successfully as {site.user()}")
+    logging.info(f"Bot logged in successfully as {site.username}")
 except mwclient.LoginError as e:
     logging.error(f"Login failed: {e}")
     exit(1)
 
 def extract_vandal_username(line):
-    """Extract the username or IP from vandal templates."""
-    match = re.search(r"{{(?:vandal|ipvandal)\|([^}|]+)", line)
+    """Extract the username or IP from vandal templates using regex."""
+    match = re.search(r"{{(?:vandal|ipvandal)\|([^}]+)}}", line)
     vandal_username = match.group(1).strip() if match else None
     logging.debug(f"Extracted vandal username: {vandal_username} from line: {line}")
     return vandal_username
@@ -50,7 +51,7 @@ def process_vip_reports(dry_run=False):
                     try:
                         # Retrieve user information
                         user_info_list = site.users([vandal_username])
-                        user_info = next(iter(user_info_list), None)
+                        user_info = next(iter(user_info_list), None)  # Get first user info from iterator
                         logging.debug(f"User info for {vandal_username}: {user_info}")
 
                         if user_info and user_info.get("blockedby"):
@@ -81,6 +82,9 @@ def process_vip_reports(dry_run=False):
     except Exception as e:
         logging.error(f"Error processing Wikipedia:VIP: {e}")
 
-# Run the bot
+# Run the bot every minute
 if __name__ == "__main__":
-    process_vip_reports(dry_run=False)  # Set to True for testing without saving changes
+    while True:
+        process_vip_reports(dry_run=False)  # Set to True for testing without saving changes
+        logging.info("Sleeping for 1 minute...")
+        time.sleep(60)
