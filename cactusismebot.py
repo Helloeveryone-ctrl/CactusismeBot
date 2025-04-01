@@ -1,71 +1,64 @@
-import mwclient
-import logging
-import re
-import os
 import time
+import datetime
+import re
+import ceterach
+#import pywikibot
+import mwparserfromhell
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+from webcite import citationdotorg
+CITE_WEB = ['cite web', 'web', 'web reference', 'web-reference', 'weblink', 'c web', 'cit web', 'cita web', 'citar web', 'cite blog', 'cite tweet',
+            'cite url,', 'cite web.', 'cite webpage', 'cite website', 'cite website article', 'cite-web', 'citeweb', 'cw', 'lien web',
+            'web citation', 'web cite',]
+CITE_NEWS = ['cite news', 'cit news', 'cite article', 'citenewsauthor', 'cite new', 'cite news-q', 'cite news2', 'cite newspaper', 'cite-news',
+              'citenews', 'cute news']
+CITE_TEMPLATES = CITE_WEB
+CITE_TEMPLATES.extend(CITE_NEWS)
+CITE_WEB_TEMPLATE = '{{cite web|url=%s|title=%s|archiveurl=%s|archivedate=%s|deadurl=no}}'
 
-# Connect to Test Wikipedia
-site = mwclient.Site("test.wikipedia.org")
+def calculate_date(delay=None):
+    #format of 31 June 2012
+    now = datetime.datetime.utcnow()
+    return now.strftime('%d %B %Y')
 
-USERNAME = os.getenv("WIKI_USERNAME")
-PASSWORD = os.getenv("WIKI_PASSWORD")
+def check_archive_conditions(post_date, last_comment_date):
+    # Calculate date difference for conditions
+    now = datetime.datetime.utcnow()
+    post_age = (now - post_date).days
+    no_comment_duration = (now - last_comment_date).days
 
-if not USERNAME or not PASSWORD:
-    raise ValueError("Environment variables WIKI_USERNAME and WIKI_PASSWORD are not defined.")
+    return post_age >= 7 or no_comment_duration >= 2
 
-try:
-    site.login(USERNAME, PASSWORD)
-    logging.info("Bot logged in successfully.")
-except mwclient.LoginError as e:
-    logging.error(f"Login failed: {e}")
-    exit(1)
+def archive_page(page):
+    orig = page.get()
+    text = mwparserfromhell.parse(orig)
+    archive_title = "विकिविश्वविद्यालय:चौपाल आर्काइव्स (निर्माण-2025)"
+    
+    if check_archive_conditions(page.creation_date, page.last_comment_date):
+        archive_page = pywikibot.Page(pywikibot.Site(), archive_title)
+        archive_page.put(str(text), 'बॉट: पोस्ट पुरालेखित किया गया')
+        page.delete(reason="बॉट: पोस्ट पुरालेखित किया गया", prompt=False)
 
-def remove_red_linked_templates_from_page(page):
-    """Removes red-linked templates from a single Wikipedia page."""
-    try:
-        # Get the text of the page
-        page_text = page.text()
-        logging.info(f"Checking page: {page.name}")
+def modify_all_of_page(page):
+    links = page.extlinks()
+    orig = page.get()
+    text = mwparserfromhell.parse(orig)
+    for link in links:
+        if 'wiki' in link:
+            continue
+        if not link.startswith(('http', 'ftp', 'https')):
+            continue
+        url = citationdotorg.archive_url(link)['webcite_url']
+        print(url)
+        text = add_template(text, link, url)
+        if not text:
+            print('ERROR')
+        text = mwparserfromhell.parse(text)
+        #pywikibot.showDiff(orig, str(text))
+        time.sleep(5)
+    print('-----------------------')
+    #pywikibot.showDiff(orig, str(text))
+    page.put(str(text), 'बॉट: मैनुअल परीक्षण द्वारा ऑपरेशन')
 
-        # Regex pattern to find template transclusions {{TemplateName}}
-        template_pattern = r"\{\{([^}|]+)(?:\|[^}]+)?\}\}"
-
-        updated_text = []
-        changes_made = False
-
-        lines = page_text.split("\n")
-        for line in lines:
-            updated_line = line
-            for match in re.finditer(template_pattern, line):
-                template_name = match.group(1).strip()
-
-                # Check if the template exists
-                if not site.pages[f"Template:{template_name}"].exists:
-                    logging.info(f"Removing red-linked template: {{ {template_name} }} from {page.name}")
-                    updated_line = updated_line.replace(match.group(0), "")  # Remove the template
-                    changes_made = True
-
-            updated_text.append(updated_line)
-
-        # Save changes if updates were made
-        if changes_made:
-            page.edit("\n".join(updated_text), summary="Removed red-linked templates.")
-            logging.info(f"Updated page: {page.name}")
-        else:
-            logging.info(f"No red-linked templates found on {page.name}.")
-
-    except Exception as e:
-        logging.error(f"Error processing {page.name}: {e}")
-
-def scan_wiki_for_red_linked_templates():
-    """Scans every page on the wiki and removes red-linked templates."""
-    for page in site.allpages(namespace=0):  # Scans all main namespace pages
-        remove_red_linked_templates_from_page(page)
-        time.sleep(1)  # Delay to avoid API spam
-
-# Run the bot
 if __name__ == "__main__":
-    scan_wiki_for_red_linked_templates()
+    # Here you can add logic to fetch pages, check conditions, and call archive_page()
+    pass
