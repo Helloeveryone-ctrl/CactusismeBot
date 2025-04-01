@@ -2,6 +2,7 @@ import mwclient
 import logging
 import re
 import os
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -22,47 +23,49 @@ except mwclient.LoginError as e:
     logging.error(f"Login failed: {e}")
     exit(1)
 
-def remove_red_links(page_title, dry_run=False):
-    """Removes red-linked articles from a specific page."""
-    page = site.pages[page_title]  # Target page
-
+def remove_red_linked_templates_from_page(page):
+    """Removes red-linked templates from a single Wikipedia page."""
     try:
         # Get the text of the page
         page_text = page.text()
-        logging.info(f"Retrieved page content for {page_title}")
+        logging.info(f"Checking page: {page.name}")
 
-        # Regex to find red-linked articles
-        red_link_pattern = r"\[\[(?:[^|\]]+\|)?([^\]]+)\]\]"
+        # Regex pattern to find template transclusions {{TemplateName}}
+        template_pattern = r"\{\{([^}|]+)(?:\|[^}]+)?\}\}"
 
         updated_text = []
         changes_made = False
 
         lines = page_text.split("\n")
         for line in lines:
-            # Check and remove red links
             updated_line = line
-            for match in re.finditer(red_link_pattern, line):
-                link_target = match.group(1).strip()
-                if not site.pages[link_target].exists:  # Check if the page exists
-                    logging.info(f"Removing red link: {link_target}")
-                    updated_line = updated_line.replace(match.group(0), link_target)  # Replace with plain text
+            for match in re.finditer(template_pattern, line):
+                template_name = match.group(1).strip()
+
+                # Check if the template exists
+                if not site.pages[f"Template:{template_name}"].exists:
+                    logging.info(f"Removing red-linked template: {{ {template_name} }} from {page.name}")
+                    updated_line = updated_line.replace(match.group(0), "")  # Remove the template
                     changes_made = True
+
             updated_text.append(updated_line)
 
-        # Save changes if updates are made
+        # Save changes if updates were made
         if changes_made:
-            if dry_run:
-                logging.info("Dry run mode: Changes are not being saved.")
-                logging.debug("Updated text content:\n" + "\n".join(updated_text))
-            else:
-                page.edit("\n".join(updated_text), summary="Removed red-linked articles (bot).")
-                logging.info(f"Updated {page_title} successfully.")
+            page.edit("\n".join(updated_text), summary="Removed red-linked templates.")
+            logging.info(f"Updated page: {page.name}")
         else:
-            logging.info(f"No red links found on {page_title}.")
+            logging.info(f"No red-linked templates found on {page.name}.")
 
     except Exception as e:
-        logging.error(f"Error processing {page_title}: {e}")
+        logging.error(f"Error processing {page.name}: {e}")
 
-# Run the function
+def scan_wiki_for_red_linked_templates():
+    """Scans every page on the wiki and removes red-linked templates."""
+    for page in site.allpages(namespace=0):  # Scans all main namespace pages
+        remove_red_linked_templates_from_page(page)
+        time.sleep(1)  # Delay to avoid API spam
+
+# Run the bot
 if __name__ == "__main__":
-    remove_red_links("User talk:Cactusisme/Archive 2", dry_run=False)  # Set to True for testing
+    scan_wiki_for_red_linked_templates()
