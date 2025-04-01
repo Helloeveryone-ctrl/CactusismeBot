@@ -5,7 +5,7 @@ import os
 import time
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Connect to Test Wikipedia
 site = mwclient.Site("test.wikipedia.org")
@@ -18,73 +18,54 @@ if not USERNAME or not PASSWORD:
 
 try:
     site.login(USERNAME, PASSWORD)
-    logging.info(f"Bot logged in successfully as {site.username}")
+    logging.info("Bot logged in successfully.")
 except mwclient.LoginError as e:
     logging.error(f"Login failed: {e}")
     exit(1)
 
-def extract_vandal_username(line):
-    """Extract the username or IP from vandal templates using regex."""
-    match = re.search(r"{{(?:vandal|ipvandal)\|([^}]+)}}", line)
-    vandal_username = match.group(1).strip() if match else None
-    logging.debug(f"Extracted vandal username: {vandal_username} from line: {line}")
-    return vandal_username
-
-def process_vip_reports(dry_run=False):
-    """Processes reports on WP:VIP and marks blocked vandals as done."""
-    page = site.pages["Wikipedia:VIP"]  # WP:VIP page
-
+def remove_red_linked_templates_from_page(page):
+    """Removes red-linked templates from a single Wikipedia page."""
     try:
         # Get the text of the page
-        vip_text = page.text()
-        logging.debug(f"Retrieved page content:\n{vip_text}")
+        page_text = page.text()
+        logging.info(f"Checking page: {page.name}")
 
-        lines = vip_text.split("\n")
+        # Regex pattern to find template transclusions {{TemplateName}}
+        template_pattern = r"\{\{([^}|]+)(?:\|[^}]+)?\}\}"
+
         updated_text = []
         changes_made = False
 
+        lines = page_text.split("\n")
         for line in lines:
-            if "{{done}}" not in line:
-                vandal_username = extract_vandal_username(line)
+            updated_line = line
+            for match in re.finditer(template_pattern, line):
+                template_name = match.group(1).strip()
 
-                if vandal_username:
-                    try:
-                        # Retrieve user information
-                        user_info_list = site.users([vandal_username])
-                        user_info = next(iter(user_info_list), None)  # Get first user info from iterator
-                        logging.debug(f"User info for {vandal_username}: {user_info}")
+                # Check if the template exists
+                if not site.pages[f"Template:{template_name}"].exists:
+                    logging.info(f"Removing red-linked template: {{ {template_name} }} from {page.name}")
+                    updated_line = updated_line.replace(match.group(0), "")  # Remove the template
+                    changes_made = True
 
-                        if user_info and user_info.get("blockedby"):
-                            # Mark as done
-                            line += " {{done}} --~~~~"
-                            changes_made = True
-                            blocking_admin = user_info.get("blockedby")
-                            logging.info(f"Marked {vandal_username} as done (Blocked by {blocking_admin}).")
-                        else:
-                            logging.info(f"User {vandal_username} is not blocked or information is missing.")
+            updated_text.append(updated_line)
 
-                    except Exception as user_error:
-                        logging.error(f"Error processing user {vandal_username}: {user_error}")
-
-            updated_text.append(line)
-
-        # Save changes to WP:VIP if there are updates
+        # Save changes if updates were made
         if changes_made:
-            if dry_run:
-                logging.info("Dry run mode: Changes are not being saved.")
-                logging.debug("Updated text content:\n" + "\n".join(updated_text))
-            else:
-                page.edit("\n".join(updated_text), summary="Marking reports as done.")
-                logging.info("Updated Wikipedia:VIP successfully.")
+            page.edit("\n".join(updated_text), summary="Removed red-linked templates.")
+            logging.info(f"Updated page: {page.name}")
         else:
-            logging.info("No changes needed on Wikipedia:VIP.")
+            logging.info(f"No red-linked templates found on {page.name}.")
 
     except Exception as e:
-        logging.error(f"Error processing Wikipedia:VIP: {e}")
+        logging.error(f"Error processing {page.name}: {e}")
 
-# Run the bot every minute
+def scan_wiki_for_red_linked_templates():
+    """Scans every page on the wiki and removes red-linked templates."""
+    for page in site.allpages(namespace=0):  # Scans all main namespace pages
+        remove_red_linked_templates_from_page(page)
+        time.sleep(1)  # Delay to avoid API spam
+
+# Run the bot
 if __name__ == "__main__":
-    while True:
-        process_vip_reports(dry_run=False)  # Set to True for testing without saving changes
-        logging.info("Sleeping for 1 minute...")
-        time.sleep(60)
+    scan_wiki_for_red_linked_templates()
