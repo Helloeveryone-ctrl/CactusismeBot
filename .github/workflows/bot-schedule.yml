@@ -17,10 +17,11 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Dependencies
-        run: |
-          pip install mwparserfromhell pywikibot
-          pip install git+https://github.com/Helloeveryone-ctrl/citationdotorg.git  # If hosted on GitHub
+- name: Install Dependencies
+  run: |
+    pip install mwparserfromhell pywikibot
+    pip install git+https://github.com/Helloeveryone-ctrl/CactusismeBot.git
+
 
       - name: Run Script
         run: python cactusismebot.py
