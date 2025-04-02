@@ -64,11 +64,11 @@ def modify_all_of_page(page):
 
 def test_edit():
     site = pywikibot.Site()
-    page = pywikibot.Page(site, "User:CactusismeBot/TestPage")  # Change this to a sandbox or test page
+    page = pywikibot.Page(site, "सदस्य:Cactusisme/Sandbox")  # Uses sandbox for testing edits
     print(f"Attempting to edit {page.title()}...")  # Debug log
 
     try:
-        page.put("Test edit by bot", "Testing bot edit functionality")
+        page.put("Testing bot edit", "Automated edit test")  # Test edit
         print("Test edit completed successfully!")  # Debug log
     except Exception as e:
         print(f"ERROR: Failed to edit page - {e}")  # Debug log
