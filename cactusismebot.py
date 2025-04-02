@@ -64,6 +64,15 @@ def modify_all_of_page(page):
 
 def test_edit():
     site = pywikibot.Site()
+    
+    # Authenticate bot using recommended method
+    try:
+        site.login()
+        print("Bot logged in successfully!")  # Debug log
+    except Exception as e:
+        print(f"ERROR: Bot login failed - {e}")  # Debug log
+        return  # Exit if authentication fails
+
     page = pywikibot.Page(site, "सदस्य:Cactusisme/Sandbox")  # Uses sandbox for testing edits
     print(f"Attempting to edit {page.title()}...")  # Debug log
 
