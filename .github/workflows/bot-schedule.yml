@@ -2,8 +2,8 @@ name: Run Archive Script
 
 on:
   schedule:
-  - cron: '*/1 * * * *'  # Runs every minute
-  workflow_dispatch: # Allows manual trigger
+    - cron: '*/1 * * * *'  # Runs every minute
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
   run-script:
@@ -19,7 +19,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install mwparserfromhell pywikibot citationdotorg
+          pip install mwparserfromhell pywikibot
+          pip install git+https://github.com/username/citationdotorg.git  # If hosted on GitHub
 
       - name: Run Script
         run: python cactusismebot.py
