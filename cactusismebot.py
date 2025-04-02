@@ -2,6 +2,7 @@ import time
 import datetime
 import re
 import mwparserfromhell
+import pywikibot  # Ensure Pywikibot is imported
 
 try:
     from webcite import citationdotorg  # Ensure citationdotorg is installed
@@ -61,5 +62,19 @@ def modify_all_of_page(page):
     print("Updating page content...")  # Debug log
     page.put(str(text), 'बॉट: मैनुअल परीक्षण द्वारा ऑपरेशन')
 
+def test_edit():
+    site = pywikibot.Site()
+    page = pywikibot.Page(site, "User:CactusismeBot/TestPage")  # Change this to a sandbox or test page
+    print(f"Attempting to edit {page.title()}...")  # Debug log
+
+    try:
+        page.put("Test edit by bot", "Testing bot edit functionality")
+        print("Test edit completed successfully!")  # Debug log
+    except Exception as e:
+        print(f"ERROR: Failed to edit page - {e}")  # Debug log
+
 if __name__ == "__main__":
     print("Script is running...")
+    
+    # Test authentication by making a simple edit
+    test_edit()
