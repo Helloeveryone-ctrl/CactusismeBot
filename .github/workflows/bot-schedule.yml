@@ -2,22 +2,24 @@ name: Run Archive Script
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight
+  - cron: '*/1 * * * *'  # Runs every minute
   workflow_dispatch: # Allows manual trigger
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Set Up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
+      - name: Install Dependencies
+        run: |
+          pip install mwparserfromhell pywikibot citationdotorg
 
-
-    - name: Run Script
-      run: python cactusismebot.py
+      - name: Run Script
+        run: python cactusismebot.py
