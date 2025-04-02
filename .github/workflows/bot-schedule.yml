@@ -6,6 +6,12 @@ on:
   workflow_dispatch:  # Allows manual trigger
 
 jobs:
+      - name: Set Up Pywikibot Credentials
+  run: |
+    echo "usernames['wikiversity']['hi'] = '${{ secrets.WIKI_USERNAME }}'" > user-config.py
+    echo "password_file = 'user-password.py'" >> user-config.py
+    echo "('"${{ secrets.WIKI_USERNAME }}"', '"${{ secrets.WIKI_PASSWORD }}"')" > user-password.py
+
   run-script:
     runs-on: ubuntu-latest
     steps:
