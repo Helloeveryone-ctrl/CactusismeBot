@@ -17,17 +17,20 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          python -m pip install pywikibot
+          pip install pywikibot python-dotenv
           
-      - name: Run archiver
+      - name: Login to Wiki (optional - only if bot needs login)
         env:
           WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
           WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
+        run: |
+          python -c "import pywikibot; pywikibot.Site('hi', 'wikiversity').login()"
+          
+      - name: Run archiver
+        env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           DRY_RUN: "False"
         run: |
-          python -m pywikibot login --user $WIKI_USERNAME --password $WIKI_PASSWORD
           python scripts/choupal_archiver.py
