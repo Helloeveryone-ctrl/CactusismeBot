@@ -1,0 +1,33 @@
+name: Archive Choupal
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # Every Monday at 3 AM UTC
+  workflow_dispatch:
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          python -m pip install pywikibot
+          
+      - name: Run archiver
+        env:
+          WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
+          WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          DRY_RUN: "False"
+        run: |
+          python -m pywikibot login --user $WIKI_USERNAME --password $WIKI_PASSWORD
+          python scripts/choupal_archiver.py
