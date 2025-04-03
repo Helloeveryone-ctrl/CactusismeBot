@@ -1,7 +1,7 @@
 name: Archive Choupal
 on:
   schedule:
-    - cron: '0 3 * * 1'  # Every Monday at 3 AM UTC
+    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -16,21 +16,18 @@ jobs:
           python-version: '3.10'
           
       - name: Install dependencies
-        run: |
-          pip install pywikibot python-dotenv
-          
-      - name: Login to Wiki (optional - only if bot needs login)
+        run: pip install pywikibot python-dotenv
+
+      - name: Create password file
         env:
-          WIKI_USERNAME: ${{ secrets.WIKI_USERNAME }}
           WIKI_PASSWORD: ${{ secrets.WIKI_PASSWORD }}
         run: |
-          python -c "import pywikibot; pywikibot.Site('hi', 'wikiversity').login()"
+          echo "$WIKI_PASSWORD" > .wiki_passwd
+          chmod 600 .wiki_passwd
           
       - name: Run archiver
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          DRY_RUN: "False"
-        run: |
-          python scripts/choupal_archiver.py
+        run: python scripts/choupal_archiver.py
